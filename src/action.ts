@@ -98,7 +98,12 @@ export default async function main() {
       previousTag = latestTag;
     }
     else {
-      previousTag = latestPrereleaseTag;
+      previousTag = gte(
+        latestTag.name.replace(prefixRegex, ''),
+        latestPrereleaseTag.name.replace(prefixRegex, '')
+      )
+        ? latestTag
+        : latestPrereleaseTag;
     }
 
     if (!previousTag) {
