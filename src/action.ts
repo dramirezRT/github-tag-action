@@ -94,7 +94,10 @@ export default async function main() {
     let previousVersion: SemVer | null;
     if (!latestPrereleaseTag) {
       previousTag = latestTag;
-    } else {
+    } else if (isReleaseBranch) {
+      previousTag = latestTag;
+    }
+    else {
       previousTag = gte(
         latestTag.name.replace(prefixRegex, ''),
         latestPrereleaseTag.name.replace(prefixRegex, '')
