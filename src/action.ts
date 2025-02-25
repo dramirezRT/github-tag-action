@@ -167,9 +167,18 @@ export default async function main() {
       bump = bump.replace(preReg, '');
     }
 
-    const releaseType: ReleaseType = isPrerelease
+    let releaseType: ReleaseType = isPrerelease
       ? `pre${bump}`
       : bump || defaultBump;
+
+    if (!isPrerelease && bump) {
+      // If we are not on a prerelease branch and we did not find an automatic bump
+      // we should use the default bump. If the default bump is lower than the
+      // automatic bump we should use the default bump.
+      const bumpPriority = ['patch', 'minor', 'major'];
+      releaseType = bumpPriority.indexOf(defaultBump) > bumpPriority.indexOf(bump) ? defaultBump : bump;
+    }
+      
     core.setOutput('release_type', releaseType);
 
     const incrementedVersion = inc(previousVersion, releaseType, identifier);
