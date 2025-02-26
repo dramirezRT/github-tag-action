@@ -32,6 +32,7 @@ export default async function main() {
   const customReleaseRules = core.getInput('custom_release_rules');
   const shouldFetchAllTags = core.getInput('fetch_all_tags');
   const commitSha = core.getInput('commit_sha');
+  const promotePatchToMinor = core.getInput('promote_patch_to_minor');
 
   let mappedReleaseRules;
   if (customReleaseRules) {
@@ -161,24 +162,33 @@ export default async function main() {
       bump = defaultPreReleaseBump;
     }
 
-    // If somebody uses custom release rules on a prerelease branch they might create a 'preprepatch' bump.
-    const preReg = /^pre/;
-    if (isPrerelease && preReg.test(bump)) {
-      bump = bump.replace(preReg, '');
+    core.info(`Detected bump is ${bump}.`);
+
+    const patchReg = /patch$/;
+    if (promotePatchToMinor && patchReg.test(bump)) {
+      bump = bump.replace(patchReg, 'minor');
     }
 
-    let releaseType: ReleaseType = isPrerelease
-      ? `pre${bump}`
-      : bump || defaultBump;
+    // let releaseType: ReleaseType = isPrerelease
+    //   ? `pre${bump}`
+    //   : bump || defaultBump;
 
-    if (!isPrerelease && bump) {
+    let releaseType: ReleaseType;
+
+    if (!isPrerelease) {
       // If we are not on a prerelease branch and we did not find an automatic bump
       // we should use the default bump. If the default bump is lower than the
       // automatic bump we should use the default bump.
       const bumpPriority = ['patch', 'minor', 'major'];
       releaseType = bumpPriority.indexOf(defaultBump) > bumpPriority.indexOf(bump) ? defaultBump : bump;
+    } else {
+      bump = bump === 'prerelease' ? bump : `pre${bump}`;
+      const bumpPriority = ['prerelease', 'prepatch', 'preminor', 'premajor'];
+      releaseType = bumpPriority.indexOf(defaultPreReleaseBump) > bumpPriority.indexOf(bump) ? defaultPreReleaseBump : bump;
+
     }
-      
+    
+    core.info(`Release type is ${releaseType}.`);
     core.setOutput('release_type', releaseType);
 
     const incrementedVersion = inc(previousVersion, releaseType, identifier);
