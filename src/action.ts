@@ -169,10 +169,6 @@ export default async function main() {
       bump = bump.replace(patchReg, 'minor');
     }
 
-    // let releaseType: ReleaseType = isPrerelease
-    //   ? `pre${bump}`
-    //   : bump || defaultBump;
-
     let releaseType: ReleaseType;
 
     if (!isPrerelease) {
@@ -182,10 +178,13 @@ export default async function main() {
       const bumpPriority = ['patch', 'minor', 'major'];
       releaseType = bumpPriority.indexOf(defaultBump) > bumpPriority.indexOf(bump) ? defaultBump : bump;
     } else {
-      bump = bump === 'prerelease' ? bump : `pre${bump}`;
-      const bumpPriority = ['prerelease', 'prepatch', 'preminor', 'premajor'];
-      releaseType = bumpPriority.indexOf(defaultPreReleaseBump) > bumpPriority.indexOf(bump) ? defaultPreReleaseBump : bump;
-
+      if (defaultPreReleaseBump !== "prerelease") {
+        bump = bump === 'prerelease' ? bump : `pre${bump}`;
+        const bumpPriority = ['prerelease', 'prepatch', 'preminor', 'premajor'];
+        releaseType = bumpPriority.indexOf(defaultPreReleaseBump) > bumpPriority.indexOf(bump) ? defaultPreReleaseBump : bump;  
+      } else {
+        releaseType = defaultPreReleaseBump;
+      }
     }
     
     core.info(`Release type is ${releaseType}.`);
