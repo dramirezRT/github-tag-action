@@ -61,6 +61,10 @@ inputs:
     description: "Do not perform tagging, just calculate next version and changelog, then exit."
     required: false
     default: "false"
+  promote_patch_to_minor:
+    description: "Promote a patch to a minor version bump."
+    required: false
+    default: "false"
 
 runs:
   using: "node20"
