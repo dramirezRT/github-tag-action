@@ -4,7 +4,7 @@ import { Await } from './ts';
 
 let octokitSingleton: ReturnType<typeof getOctokit>;
 
-type Tag = {
+export type Tag = {
   name: string;
   commit: {
     sha: string;

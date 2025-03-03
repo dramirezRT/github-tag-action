@@ -11,8 +11,9 @@ import {
   getValidTags,
   mapCustomReleaseRules,
   mergeWithDefaultChangelogRules,
+  convertVersionFormat
 } from './utils';
-import { createTag } from './github';
+import { createTag, Tag } from './github';
 import { Await } from './ts';
 
 export default async function main() {
@@ -33,6 +34,8 @@ export default async function main() {
   const shouldFetchAllTags = core.getInput('fetch_all_tags');
   const commitSha = core.getInput('commit_sha');
   const promotePatchToMinor = core.getInput('promote_patch_to_minor');
+  const versionFormat = core.getInput('version_format');
+  const isCustomVersionFormat = versionFormat !== "MAJOR.MINOR.PATCH";
 
   let mappedReleaseRules;
   if (customReleaseRules) {
@@ -70,15 +73,27 @@ export default async function main() {
 
   const prefixRegex = new RegExp(`^${tagPrefix}`);
 
+  // Returns all matching tags in a SemVer compliant format
+  // i.e. for versions (in repo) v1.2 -> v1.2.0 is returned if versionFormat is MAJOR.MINOR
   const validTags = await getValidTags(
     prefixRegex,
-    /true/i.test(shouldFetchAllTags)
+    /true/i.test(shouldFetchAllTags),
+    versionFormat
   );
   const latestTag = getLatestTag(validTags, prefixRegex, tagPrefix);
   const latestPrereleaseTag = getLatestPrereleaseTag(
     validTags,
     identifier,
     prefixRegex
+  );
+  
+  validTags.forEach((tag: Tag) => {
+    core.info(`Valid tag: ${tag.name}`);
+  });
+
+  core.info(`Latest tag: ${latestTag ? latestTag.name : 'none'}`);
+  core.info(
+    `Latest pre-release tag: ${latestPrereleaseTag ? latestPrereleaseTag.name : 'none'}`
   );
 
   let commits: Await<ReturnType<typeof getCommits>>;
@@ -112,7 +127,13 @@ export default async function main() {
       return;
     }
 
+    // Here we convert back the name of the tag to the original format
+    // matching the versionFormat input
+    // i.e. for versions v1.2.0 -> v1.2 is returned if versionFormat is MAJOR.MINOR
+    // or for versions main-v1.2.0 -> main-v1.2 is returned if versionFormat is MAJOR.MINOR
+    // for versions v1.2.3 -> v1.2.3 is returned if versionFormat is MAJOR.MINOR.PATCH (default)
     previousVersion = parse(previousTag.name.replace(prefixRegex, ''));
+    previousTag.name = convertVersionFormat(previousTag.name, versionFormat);
 
     if (!previousVersion) {
       core.setFailed('Could not parse previous tag.');
@@ -205,11 +226,15 @@ export default async function main() {
     newVersion = incrementedVersion;
   }
 
-  core.info(`New version is ${newVersion}.`);
-  core.setOutput('new_version', newVersion);
+  newVersion = convertVersionFormat(newVersion, versionFormat);
+  const newTag = convertVersionFormat(`${tagPrefix}${newVersion}`, versionFormat);
 
-  const newTag = `${tagPrefix}${newVersion}`;
-  core.info(`New tag after applying prefix is ${newTag}.`);
+  core.info(`New version is ${newVersion}, new tag is ${newTag}.`);
+  if (isCustomVersionFormat) {
+    core.info(`\tWith custom version format: ${versionFormat}`);
+  }
+
+  core.setOutput('new_version', newVersion);
   core.setOutput('new_tag', newTag);
 
   const changelog = await generateNotes(
