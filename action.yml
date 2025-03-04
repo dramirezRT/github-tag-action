@@ -65,6 +65,10 @@ inputs:
     description: "Promote a patch to a minor version bump."
     required: false
     default: "false"
+  version_format:
+    description: "The format of the version to output. Default is `MAJOR.MINOR.PATCH`."
+    required: false
+    default: "MAJOR.MINOR.PATCH"
 
 runs:
   using: "node20"

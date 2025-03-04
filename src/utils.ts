@@ -2,17 +2,43 @@ import * as core from '@actions/core';
 import { prerelease, rcompare, valid } from 'semver';
 // @ts-ignore
 import DEFAULT_RELEASE_TYPES from '@semantic-release/commit-analyzer/lib/default-release-types';
-import { compareCommits, listTags } from './github';
+import { compareCommits, listTags, Tag } from './github';
 import { defaultChangelogRules } from './defaults';
 import { Await } from './ts';
 
 type Tags = Await<ReturnType<typeof listTags>>;
 
+export function convertVersionFormat(tag: string, customVersionFormat: false | string): string {
+  if (!customVersionFormat) return tag;
+
+  const regex = /^(.*?)(\d+)(?:\.(\d+))?(?:\.(\d+))?(.*)$/;
+  const match = tag.match(regex);
+  if (!match) return "";
+
+  const [, prefix, major, minor = "0", patch = "0", suffix] = match;
+  const versionMap = { MAJOR: major, MINOR: minor, PATCH: patch };
+
+  const name = customVersionFormat.split('.').map(
+    versionItem => versionMap[versionItem as keyof typeof versionMap] || ''
+  ).join('.');
+  return `${prefix}${name}${suffix}`;
+}
+
 export async function getValidTags(
   prefixRegex: RegExp,
-  shouldFetchAllTags: boolean
+  shouldFetchAllTags: boolean,
+  isCustomVersionFormat: false | string
 ) {
-  const tags = await listTags(shouldFetchAllTags);
+  let tags: Tags = await listTags(shouldFetchAllTags);
+
+  if (isCustomVersionFormat) {
+    // Convert each tag to Semantic Version format
+    // We need to revert the conversion when we are writing something back to the repository
+    tags = tags.map((tag) => {
+      const customTag = convertVersionFormat(tag.name, 'MAJOR.MINOR.PATCH');
+      return { ...tag, name: customTag };
+    });
+  } 
 
   const invalidTags = tags.filter(
     (tag) =>
