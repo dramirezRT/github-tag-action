@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { prerelease, rcompare, valid } from 'semver';
+import { prerelease, rcompare, SemVer, valid } from 'semver';
 // @ts-ignore
 import DEFAULT_RELEASE_TYPES from '@semantic-release/commit-analyzer/lib/default-release-types';
 import { compareCommits, listTags, Tag } from './github';
@@ -22,6 +22,32 @@ export function convertVersionFormat(tag: string, customVersionFormat: false | s
     versionItem => versionMap[versionItem as keyof typeof versionMap] || ''
   ).join('.');
   return `${prefix}${name}${suffix}`;
+}
+
+export function removeDotFromPreReleaseIdentifier(
+  tag: string,
+  appendToPreReleaseTag: string,
+  removeDot: 'remove' | 'add'
+) {
+  if (removeDot === 'add') {
+    // If removeDot is false, need to add a dot to the identifier or leave it as is
+    // if the identifier already has a dot
+    // These tags can look like this: -rc.1, -rc2, -rc.3
+    const regex = new RegExp(`(-${appendToPreReleaseTag})(\\w+)`);
+    const match = tag.match(regex);
+    if (match) {
+      // If the identifier already has a dot, return the tag as is
+      if (match[2].startsWith('.')) {
+        return tag;
+      }
+      // If the identifier doesn't have a dot, add it
+      return tag.replace(regex, `$1.$2`);
+    }
+  }
+  // This regex matches a hyphen, then the identifier, then a dot, then any following characters
+  // Example: -rc.1  => -rc1
+  const regex = new RegExp(`(-${appendToPreReleaseTag})\\.(\\w+)`);
+  return tag.replace(regex, `$1$2`);
 }
 
 export async function getValidTags(

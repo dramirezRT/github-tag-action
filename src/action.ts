@@ -11,7 +11,8 @@ import {
   getValidTags,
   mapCustomReleaseRules,
   mergeWithDefaultChangelogRules,
-  convertVersionFormat
+  convertVersionFormat,
+  removeDotFromPreReleaseIdentifier
 } from './utils';
 import { createTag, Tag } from './github';
 import { Await } from './ts';
@@ -26,6 +27,9 @@ export default async function main() {
   const releaseBranches = core.getInput('release_branches');
   const preReleaseBranches = core.getInput('pre_release_branches');
   const appendToPreReleaseTag = core.getInput('append_to_pre_release_tag');
+  const removeDotSeparatedPreReleaseIdentifier = /true/i.test(
+    core.getInput('remove_dot_separated_pre_release_identifier')
+  );
   const createAnnotatedTag = /true/i.test(
     core.getInput('create_annotated_tag')
   );
@@ -107,7 +111,7 @@ export default async function main() {
     newVersion = customTag;
   } else {
     let previousTag: ReturnType<typeof getLatestTag> | null;
-    let previousVersion: SemVer | null;
+    let previousVersion: string | SemVer | null;
     if (!latestPrereleaseTag) {
       previousTag = latestTag;
     } else if (isReleaseBranch) {
@@ -217,6 +221,9 @@ export default async function main() {
     core.info(`Release type is ${releaseType}.`);
     core.setOutput('release_type', releaseType);
 
+    previousVersion = removeDotSeparatedPreReleaseIdentifier ? 
+      removeDotFromPreReleaseIdentifier(previousVersion.version, identifier, 'add') : previousVersion;
+    core.info(`DOTTED - Previous version is ${previousVersion}.`);
     const incrementedVersion = inc(previousVersion, releaseType, identifier);
 
     if (!incrementedVersion) {
@@ -233,7 +240,14 @@ export default async function main() {
   }
 
   newVersion = convertVersionFormat(newVersion, versionFormat);
+  // Check if we need to remove the dot from the pre-release identifier
+  // i.e. 1.2.3-RC.0 -> 1.2.3-RC0
+  // or 1.2-RC.0 -> 1.2-RC0
+  newVersion = removeDotSeparatedPreReleaseIdentifier ? 
+    removeDotFromPreReleaseIdentifier(newVersion, identifier, 'remove') : newVersion;
+  
   const newTag = convertVersionFormat(`${tagPrefix}${newVersion}`, versionFormat);
+
 
   core.info(`New version is ${newVersion}, new tag is ${newTag}.`);
   if (isCustomVersionFormat) {

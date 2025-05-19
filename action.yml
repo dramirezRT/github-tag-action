@@ -33,6 +33,10 @@ inputs:
   append_to_pre_release_tag:
     description: "A suffix to a pre-release tag name (default: `<branch>`)."
     required: false
+  remove_dot_separated_pre_release_identifier:
+    description: "Remove dot-separated pre-release identifiers from the tag name (default: `false`)."
+    required: false
+    default: "false"
   custom_tag:
     description: "Custom tag name. If specified, it overrides bump settings."
     required: false
