@@ -52,6 +52,7 @@ export function removeDotFromPreReleaseIdentifier(
 
 export async function getValidTags(
   prefixRegex: RegExp,
+  prefix: string,
   shouldFetchAllTags: boolean,
   isCustomVersionFormat: false | string
 ) {
@@ -61,8 +62,10 @@ export async function getValidTags(
     // Convert each tag to Semantic Version format
     // We need to revert the conversion when we are writing something back to the repository
     tags = tags.map((tag) => {
-      const customTag = convertVersionFormat(tag.name, 'MAJOR.MINOR.PATCH');
-      return { ...tag, name: customTag };
+      const origTagName = tag.name;
+      const customTag = convertVersionFormat(tag.name.replace(prefixRegex, ''), 'MAJOR.MINOR.PATCH');
+      core.debug(`Converted tag ${customTag} from ${tag.name}`);
+      return { ...tag, name: prefixRegex.test(origTagName) ? `${prefix}${customTag}` : customTag };
     });
   } 
 

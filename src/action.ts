@@ -81,6 +81,7 @@ export default async function main() {
   // i.e. for versions (in repo) v1.2 -> v1.2.0 is returned if versionFormat is MAJOR.MINOR
   const validTags = await getValidTags(
     prefixRegex,
+    tagPrefix,
     /true/i.test(shouldFetchAllTags),
     versionFormat
   );
@@ -246,7 +247,7 @@ export default async function main() {
   newVersion = removeDotSeparatedPreReleaseIdentifier ? 
     removeDotFromPreReleaseIdentifier(newVersion, identifier, 'remove') : newVersion;
   
-  const newTag = convertVersionFormat(`${tagPrefix}${newVersion}`, versionFormat);
+  const newTag = `${tagPrefix}${convertVersionFormat(newVersion, versionFormat)}`;
 
 
   core.info(`New version is ${newVersion}, new tag is ${newTag}.`);
