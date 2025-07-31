@@ -85,7 +85,7 @@ export async function getValidTags(
       rcompare(a.name.replace(prefixRegex, ''), b.name.replace(prefixRegex, ''))
     );
 
-  validTags.forEach((tag) => core.debug(`Found Valid Tag: ${tag.name}.`));
+  validTags.forEach((tag) => core.info(`Found Valid Tag: ${tag.name}.`));
 
   return validTags;
 }

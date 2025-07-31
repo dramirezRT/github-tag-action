@@ -85,7 +85,7 @@ export default async function main() {
     /true/i.test(shouldFetchAllTags),
     versionFormat
   );
-  const latestTag = getLatestTag(validTags, prefixRegex, tagPrefix);
+  let latestTag = getLatestTag(validTags, prefixRegex, tagPrefix);
   const latestPrereleaseTag = getLatestPrereleaseTag(
     validTags,
     identifier,
@@ -138,7 +138,7 @@ export default async function main() {
     // or for versions main-v1.2.0 -> main-v1.2 is returned if versionFormat is MAJOR.MINOR
     // for versions v1.2.3 -> v1.2.3 is returned if versionFormat is MAJOR.MINOR.PATCH (default)
     previousVersion = parse(previousTag.name.replace(prefixRegex, ''));
-    previousTag.name = convertVersionFormat(previousTag.name, versionFormat);
+    previousTag.name = `${tagPrefix}${convertVersionFormat(previousTag.name.replace(prefixRegex, ''), versionFormat)}`;
 
     if (!previousVersion) {
       core.setFailed('Could not parse previous tag.');
@@ -146,7 +146,7 @@ export default async function main() {
     }
 
     core.info(
-      `Previous tag was ${previousTag.name}, previous version was ${previousVersion.version}.`
+      `Previous tag was ${previousTag.name}, previous Semver was ${previousVersion.version}.`
     );
     core.setOutput('previous_version', previousVersion.version);
     core.setOutput('previous_tag', previousTag.name);
@@ -238,6 +238,7 @@ export default async function main() {
     }
 
     newVersion = incrementedVersion;
+    latestTag = previousTag
   }
 
   newVersion = convertVersionFormat(newVersion, versionFormat);
