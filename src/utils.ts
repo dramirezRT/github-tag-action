@@ -81,9 +81,18 @@ export async function getValidTags(
       (tag) =>
         prefixRegex.test(tag.name) && valid(tag.name.replace(prefixRegex, ''))
     )
-    .sort((a, b) =>
-      rcompare(a.name.replace(prefixRegex, ''), b.name.replace(prefixRegex, ''))
-    );
+    .sort((a, b) => {
+      // Normalize prerelease tags to ensure numeric identifiers are compared correctly
+      // Convert rc9 -> rc.9 so semver compares numerically instead of lexicographically
+      const normalizePrerelease = (version: string) => {
+        return version.replace(/-([a-zA-Z]+)(\d+)/g, '-$1.$2');
+      };
+      
+      const versionA = normalizePrerelease(a.name.replace(prefixRegex, ''));
+      const versionB = normalizePrerelease(b.name.replace(prefixRegex, ''));
+      
+      return rcompare(versionA, versionB);
+    });
 
   validTags.forEach((tag) => core.info(`Found Valid Tag: ${tag.name}.`));
 
